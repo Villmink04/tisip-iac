@@ -42,5 +42,5 @@ module "network" {
   name_prefix         = local.name_prefix
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
-  tags                =local.common_tags
+  tags                = local.common_tags
 }
