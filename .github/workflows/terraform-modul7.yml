@@ -2,75 +2,126 @@ name: terraform-modul7
 
 on:
   pull_request:
-    branches: [main]
+    branches:
+      - main
     paths:
-      - 'modul7/**'
-      - '.github/workflows/terraform-modul7.yml'
+      - "modul7/**"
+      - ".github/workflows/terraform-modul7.yml"
+
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
-      - 'modul7/**'
-      - '.github/workflows/terraform-modul7.yml'
+      - "modul7/**"
+      - ".github/workflows/terraform-modul7.yml"
 
 permissions:
-  id-token: write        # OIDC mot Azure (modul 6)
+  id-token: write
   contents: read
-  pull-requests: write   # for å poste planen tilbake i PR-en
-
-defaults:
-  run:
-    working-directory: modul7     # her bor Terraform-rota
-
-env:
-  ARM_USE_OIDC:        "true"
-  ARM_CLIENT_ID:       ${{ vars.AZURE_CLIENT_ID }}
-  ARM_TENANT_ID:       ${{ vars.AZURE_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
 jobs:
+  # 1. Kontrollerer formatering og Terraform-konfigurasjonen
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-      - run: terraform fmt -check -recursive
-      - run: terraform init -backend=false
-      - run: terraform validate
-  
+      - name: Hent repoet
+        uses: actions/checkout@v4
+
+      - name: Installer Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.0"
+
+      - name: Kontroller formatering
+        run: terraform -chdir=modul7/infra fmt -check -recursive
+
+      - name: Initialiser Terraform uten remote backend
+        run: terraform -chdir=modul7/infra init -backend=false
+
+      - name: Kontroller konfigurasjonen
+        run: terraform -chdir=modul7/infra validate
+
+  # 2. Lager en plan når en pull request åpnes eller oppdateres
   plan:
     needs: build
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment: dev
+
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+    defaults:
+      run:
+        working-directory: modul7/infra
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: Azure/login@v3.1.0
+      - name: Hent repoet
+        uses: actions/checkout@v4
+
+      - name: Logg inn på Azure
+        uses: Azure/login@v3.1.0
         with:
-          client-id:       ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id:       ${{ vars.AZURE_TENANT_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - uses: hashicorp/setup-terraform@v3
-      - run: |
+
+      - name: Installer Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.0"
+
+      - name: Initialiser Terraform
+        run: |
           terraform init \
-            -backend-config=infra/backend.hcl \
+            -backend-config=backend.hcl \
             -backend-config="key=modul7/dev/network.tfstate"
-      - run: terraform plan -var-file="infra/dev.tfvars" -no-color
-  
+
+      - name: Vis endringsplan
+        run: terraform plan -var-file="dev.tfvars" -no-color
+
+  # 3. Bruker planen til å opprette eller endre ressurser ved push til main
   apply-dev:
     needs: build
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: dev
+
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+    defaults:
+      run:
+        working-directory: modul7/infra
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: Azure/login@v3.1.0
+      - name: Hent repoet
+        uses: actions/checkout@v4
+
+      - name: Logg inn på Azure
+        uses: Azure/login@v3.1.0
         with:
-          client-id:       ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id:       ${{ vars.AZURE_TENANT_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - uses: hashicorp/setup-terraform@v3
-      - run: |
+
+      - name: Installer Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.0"
+
+      - name: Initialiser Terraform
+        run: |
           terraform init \
-            -backend-config=infra/backend.hcl \
+            -backend-config=backend.hcl \
             -backend-config="key=modul7/dev/network.tfstate"
-      - run: terraform apply -auto-approve -var-file="infra/dev.tfvars"
+
+      - name: Opprett eller oppdater Azure-ressurser
+        run: terraform apply -auto-approve -var-file="dev.tfvars"
