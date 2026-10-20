@@ -52,7 +52,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
       - run: |
           terraform init \
-            -backend-config=backend.hcl \
+            -backend-config=infra/backend.hcl \
             -backend-config="key=modul7/dev/network.tfstate"
       - run: terraform plan -var-file="dev.tfvars" -no-color
   
@@ -71,6 +71,6 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
       - run: |
           terraform init \
-            -backend-config=backend.hcl \
+            -backend-config=infra/backend.hcl \
             -backend-config="key=modul7/dev/network.tfstate"
-      - run: terraform apply -auto-approve -var-file="dev.tfvars"
+      - run: terraform apply -auto-approve -var-file="infra/dev.tfvars"
