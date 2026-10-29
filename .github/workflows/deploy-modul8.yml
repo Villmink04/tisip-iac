@@ -55,7 +55,7 @@ defaults:
     # Samme mekanisme som i modul 7, ny mappe. Mappenavnet står nå her, i
     # concurrency-gruppa og i key – og i tag-prefikset, som har tatt over
     # jobben paths: hadde.
-    working-directory: modul8
+    working-directory: modul8/infra
  
 env:
   ARM_USE_OIDC: "true"
@@ -133,7 +133,7 @@ jobs:
             -backend-config="key=modul8/dev/network.tfstate"
  
       - name: Apply
-        run: terraform apply -auto-approve -var-file="infra/dev.tfvars"
+        run: terraform apply -auto-approve -var-file="dev.tfvars"
  
 # =============================================================================
 #  Det som IKKE står i denne fila
