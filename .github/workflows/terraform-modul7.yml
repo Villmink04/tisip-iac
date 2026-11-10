@@ -125,3 +125,44 @@ jobs:
 
       - name: Opprett eller oppdater Azure-ressurser
         run: terraform apply -auto-approve -var-file="dev.tfvars"
+
+        apply-prod:
+    needs: apply-dev
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+    defaults:
+      run:
+        working-directory: modul7/infra
+
+    steps:
+      - name: Hent repoet
+        uses: actions/checkout@v4
+
+      - name: Logg inn på Azure
+        uses: Azure/login@v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Installer Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.0"
+
+      - name: Initialiser Terraform
+        run: |
+          terraform init \
+            -backend-config=backend.hcl \
+            -backend-config="key=modul7/prod/network.tfstate"
+
+      - name: Opprett eller oppdater produksjonsressurser
+        run: terraform apply -auto-approve -var-file="prod.tfvars"
