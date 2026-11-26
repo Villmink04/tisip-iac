@@ -126,7 +126,7 @@ jobs:
       - name: Opprett eller oppdater Azure-ressurser
         run: terraform apply -auto-approve -var-file="dev.tfvars"
 
-        apply-prod:
+  apply-prod:
     needs: apply-dev
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
