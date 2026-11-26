@@ -19,6 +19,20 @@ permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: terraform-modul7-${{ github.ref }}
+  cancel-in-progress: false      # en avbrutt apply etterlater en hengende state-lås
+
+defaults:
+  run:
+    working-directory: modul7    # her bor Terraform-rota
+
+env:
+  ARM_USE_OIDC:        "true"
+  ARM_CLIENT_ID:       ${{ vars.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID:       ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
 jobs:
   # 1. Kontrollerer formatering og Terraform-konfigurasjonen
   build:
