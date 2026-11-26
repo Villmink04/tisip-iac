@@ -23,10 +23,6 @@ concurrency:
   group: terraform-modul7-${{ github.ref }}
   cancel-in-progress: false      
 
-defaults:
-  run:
-    working-directory: modul7/infra    # her bor Terraform-rota
-
 env:
   ARM_USE_OIDC:        "true"
   ARM_CLIENT_ID:       ${{ vars.AZURE_CLIENT_ID }}
